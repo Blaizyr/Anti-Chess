@@ -37,4 +37,7 @@ We welcome contributions! If you have any ideas for improvements or find any iss
 
 This project is licensed under the [MIT License](LICENSE).
 
+Images of Piecies are taken from:
+https://greenchess.net/info.php?item=downloads
+
 Enjoy your Anti-Chess experience! 🚀
