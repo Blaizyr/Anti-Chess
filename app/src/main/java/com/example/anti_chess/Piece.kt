@@ -2,14 +2,21 @@ package com.example.anti_chess
 
 
 
-enum class PieceColors { White, Black; }
+enum class PieceColors { White, Black, NoColor; }
 
 
-interface move {
+interface Move {
     fun move(index: Int): Int { return index }
 }
 
-enum class PieceType: move {
+enum class PieceType: Move {
+
+    Empty {
+        override fun move(index: Int): Int {
+            return index
+        }
+    },
+
     Pawn {
         override fun move(index: Int): Int {
             val dIndex = index - 8
@@ -50,10 +57,10 @@ enum class PieceType: move {
 }
 
 class Piece(
-    val fieldID: Array<Array<String>>,
+    val CellID: Int,
     val color: PieceColors,
     val pieceType: PieceType
-) : move by pieceType {
+) : Move by pieceType {
 
 }
 
