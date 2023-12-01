@@ -13,12 +13,4 @@ class GameStateVM: ViewModel() {
     private val _uiState = MutableStateFlow(GameStateUI())
     val uiState: StateFlow<GameStateUI> = _uiState.asStateFlow()
 
-    var pointedCell by mutableStateOf<Int?>(null)
-        private set
-
-    fun pointCell(index: Int) {
-        _uiState.value = _uiState.value.copy(pointedCell = index)
-    }
-
-
 }

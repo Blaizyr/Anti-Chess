@@ -13,7 +13,6 @@ import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.lazy.grid.GridCells
 import androidx.compose.foundation.lazy.grid.LazyVerticalGrid
-import androidx.compose.material3.Button
 import androidx.compose.material3.Card
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Surface
@@ -53,10 +52,8 @@ class MainActivity : ComponentActivity() {
 @Composable
 fun ChessCell(
     modifier: Modifier = Modifier,
-    isCellIDVisible: Boolean = false,
-    cellID: String,
+//    cellID: String,
     piece: Piece? = null,
-    isActive: Boolean? = null,
     color: Color,
 ) {
     val context = LocalContext.current
@@ -75,18 +72,12 @@ fun ChessCell(
             if (drawableResourceId != 0) {
                 Image(
                     painter = painterResource(drawableResourceId),
-                    contentDescription = piece.pieceType.name + " " + piece.color.name
+                    contentDescription = piece.pieceType.name + " " + piece.color.name,
+                    modifier = modifier.fillMaxSize()
                 )
             } else {
 
             }
-            /*
-                        Text(
-                            text = if (isCellIDVisible) {cellID} else "", modifier
-                                .align(Alignment.Center)
-                                .fillMaxWidth()
-                        )
-            */
         }
     }
 }
@@ -94,12 +85,35 @@ fun ChessCell(
 @Composable
 fun ChessBoard(
     modifier: Modifier = Modifier,
-    isCellIDVisible: Boolean = false,
     gameState: GameStateUI,
-    pointedCell: Int? = null,
-    pointCell: (Int) -> Unit,
 ) {
     val context = LocalContext.current
+
+    var pointedCellId by remember { mutableStateOf<Int?>(null) }
+    var activePiece by remember { mutableStateOf<Piece?>(null) }
+
+    fun activatePieceByID(pointedCellId: Int) {
+        activePiece = gameState.piecesPositions[pointedCellId]
+    }
+
+    fun pointCell(cellIndex: Int) {
+        pointedCellId = cellIndex
+        val checkedPiece = gameState.piecesPositions[cellIndex]
+        if (checkedPiece != null) {
+            activatePieceByID(cellIndex)
+        }
+    }
+
+    fun deactivatePiece() {
+        activePiece = null
+    }
+
+    fun deselectCell() {
+        pointedCellId = null
+        deactivatePiece()
+    }
+
+
 
     Card {
         LazyVerticalGrid(
@@ -108,24 +122,34 @@ fun ChessBoard(
                 .padding(horizontal = 5.dp, vertical = 5.dp)
         ) {
 
-            items(64) { index ->
-                val row = index / 8
-                val column = index % 8
-                val color = if ((row + column) % 2 == 0) Color.White else Color.Black
-                val cellID = computeCellID(column, row + 1)
-                val piecePosition = gameState.piecesPositions[index]
+            items(64) { cellIndex ->
+                val row = cellIndex / 8
+                val column = cellIndex % 8
+                val color = if ((row + column) % 2 == 0) Color.White else Color.DarkGray
+//                val cellID = computeCellID(column, row + 1)
+                val isCellActive: Boolean = (cellIndex == pointedCellId)
+                val pieceOnField = gameState.piecesPositions[cellIndex]
+                val activePiece = activePiece ?: null
 
                 ChessCell(
-                    piece = piecePosition,
-                    isCellIDVisible = isCellIDVisible,
-                    cellID = cellID,
-                    isActive = pointedCell == index,
-                    color = if (pointedCell == index) {
-                        Color.DarkGray
+                    piece = pieceOnField,
+                    color = if (isCellActive) {
+                        Color.Gray
                     } else color,
                     modifier = modifier
                         .weight(1f)
-                        .clickable { pointCell(index) }
+                        .clickable {
+                            if (!isCellActive) {
+                                if (activePiece != null) {
+                                    activePiece.move(pointedCellId!!, cellIndex, gameState)
+                                    deselectCell()
+                                } else {
+                                    pointCell(cellIndex)
+                                }
+                            } else {
+                                deselectCell()
+                            }
+                        }
                 )
             }
         }
@@ -134,9 +158,7 @@ fun ChessBoard(
 
 @Composable
 fun GameView(viewModel: GameStateVM, modifier: Modifier = Modifier) {
-    var isCellIDVisible by remember { mutableStateOf(false) }
     val uiState by viewModel.uiState.collectAsState()
-    val pointedCell = uiState.pointedCell
 
     Column {
         Box(modifier = modifier.fillMaxWidth()) {
@@ -150,66 +172,29 @@ fun GameView(viewModel: GameStateVM, modifier: Modifier = Modifier) {
                 .fillMaxWidth()
         ) {
             ChessBoard(
-                isCellIDVisible = isCellIDVisible,
                 gameState = uiState,
-                pointedCell = pointedCell,
-            ) {
-                viewModel.pointCell(it)
-            }
+            )
         }
-/*
-        Box(modifier = Modifier.align(Alignment.CenterHorizontally)) {
-            Button(onClick = { isCellIDVisible = !isCellIDVisible }) {
-                Text(
-                    text = if (isCellIDVisible) "Hide ID of fields" else "Show ID of fields",
-                )
-            }
-        }
-*/
+        /*
+                Box(modifier = Modifier.align(Alignment.CenterHorizontally)) {
+                    Button(onClick = { isCellIDVisible = !isCellIDVisible }) {
+                        Text(
+                            text = if (isCellIDVisible) "Hide ID of fields" else "Show ID of fields",
+                        )
+                    }
+                }
+        */
     }
 }
 
-@Preview(showBackground = true)
-@Composable
-fun MainPreview() {
-    GameView(GameStateVM())
-}
 
 fun computeCellID(column: Int, row: Int): String {
     val columnChar = ('a'.code + column).toChar()
     return "$columnChar" + row
 }
 
+@Preview(showBackground = true)
 @Composable
-fun PieceImageProvider(piece: Piece): Int {
-    val context = LocalContext.current
-
-    fun buildResourceName(piece: Piece): String {
-        return when (piece.color) {
-            PieceColors.Black -> "black"
-            PieceColors.White -> "white"
-            else -> ""
-        } + when (piece.pieceType) {
-            PieceType.Rook -> "_rook"
-            PieceType.Knight -> "_knight"
-            PieceType.Bishop -> "_bishop"
-            PieceType.Queen -> "_queen"
-            PieceType.King -> "_king"
-            PieceType.Pawn -> "_pawn"
-            else -> ""
-        }
-    }
-
-    val resourceName = buildResourceName(piece)
-
-    fun getDrawableResourceId(resourceName: String): Int {
-        if (resourceName != "") {
-            val resources = context.resources
-            val packageName = context.packageName
-            return resources.getIdentifier(resourceName, "drawable", packageName)
-        } else
-            return 0
-    }
-
-    return getDrawableResourceId(resourceName)
+fun MainPreview() {
+    GameView(GameStateVM())
 }
