@@ -102,6 +102,7 @@ fun ChessBoard(
         if (checkedPiece != null) {
             activatePieceByID(cellIndex)
         }
+        // TODO: if cell is empty - don't point
     }
 
     fun deactivatePiece() {
